@@ -1,26 +1,30 @@
+<!--
+    ----------------------------------------------------------------
+    ArkPowered Studio
+    方块盒子工作室
+    ----------------------------------------------------------------
+    程序版本；Alpha-Codeing-0.4 Beta
+    JSON_DB数据库函数集文件，JSON数据库程序
+    Github仓库：https://github.com/CarlSkyCoding/JsonDB
+    作者：SkyGod
+    ----------------------------------------------------------------
+!-->
+<link rel="stylesheet" href="//cdn.arkpowered.cn/css/page/offical/jsonDB.css">
 <?php
-
-// ----------------------------------------------------------------
-// ArkPowered Studio
-// 方块盒子工作室
-// ----------------------------------------------------------------
-// 程序版本；Alpha-Codeing-0.3 Beta
-// JSON_DB数据库函数集文件，JSON数据库程序
-// ----------------------------------------------------------------
-
 //Setting 设置（如果不懂或者作者没有让你改，请不要动）
-$version = 3;
-$versionRead = "Alpha-Codeing-0.3 Beta";
+
+$version = 4;
+$versionRead = "Alpha-Codeing-0.4 Beta";
 
 $rootPath = $_SERVER["DOCUMENT_ROOT"];
 $nowPath = getcwd() . "/";
 $GLOBALS["rootPath"] = $_SERVER["DOCUMENT_ROOT"];
 $GLOBALS["nowPath"] = getcwd() . "/";
-$listTablePath = getcwd() . "/jsonDB_store/path.json";
-$logTablePath = getcwd() . "/jsonDB_store/log.out";
 
 //常量设置，请不要更改此内容
 $updateCheckurl = "//api.arkpowered.cn/update/check/jsonDB.json";
+$listTablePath = getcwd() . "/jsonDB_store/path.json";
+$logTablePath = getcwd() . "/jsonDB_store/log.out";
 
 //运行前检查与设置
 if (chmod($nowPath, 0755)) {
@@ -29,16 +33,19 @@ if (chmod($nowPath, 0755)) {
     }
     if (!file_exists("{$nowPath}jsonDB_store/path.json")) {
         if (fopen($listTablePath, "w+") == false) {
-            echo "[jsonDB基础系统]创建数据库表文件(SettingJSON,fopen [w+])权限不足，请您提高根目录的权限";
+            echo "<br><a class='notice-head'>[jsonDB基础系统]</a> 创建数据库表文件(SettingJSON,fopen [w+])权限不足，请您提高根目录的权限";
+            exit();
         }
     }
     if (!file_exists("{$nowPath}jsonDB_store/log.out")) {
         if (fopen($logTablePath, "w+") == false) {
-            echo "[jsonDB基础系统]创建日志文件(Log,fopen [w+])权限不足，请您提高根目录的权限";
+            echo "<br><a class='notice-head'>[jsonDB基础系统]</a> 创建日志文件(Log,fopen [w+])权限不足，请您提高根目录的权限";
+            exit();
         }
     }
 } else {
-    echo "[jsonDB基础系统]创建文件夹权限不足，请您提高根目录的权限";
+    echo "<br><a class='notice-head'>[jsonDB基础系统]</a> 创建文件夹权限不足，请您提高根目录的权限";
+    exit();
 }
 //主要函数部分
 
@@ -107,6 +114,53 @@ function jsonDB_connect($table)
         $table_output = array(
             "code" => 101,
             "operationType" => "connect",
+            "error_message" => "无法找到{$table}表，请核对后重试"
+        );
+    }
+    return json_encode($table_output);
+}
+
+function jsonDB_connect_INSIDE($table, $path)
+{
+    $data = file_get_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json");
+    $data = json_decode($data, true);
+    if (isset($data[$table])) {
+        if (substr($path, 0, 1) !== "/" && substr($path, -1, 1) !== "/") {
+            $table_content = $data[$table];
+            $explode_array = explode("/", $path);
+            $count = count($explode_array);
+            $discount = 0;
+            $nextArray = $table_content;
+            while ($count > 0) {
+                if (isset($nextArray[$explode_array[$discount]])) {
+                    $nextArray = $nextArray[$explode_array[$discount]];
+                    $count = $count - 1;
+                    $discount = $discount + 1;
+                    $table_output = array(
+                        "code" => 100,
+                        "operationType" => "connect_INSIDE",
+                        "result" => $nextArray
+                    );
+                } else {
+                    $count = -1;
+                    $table_output = array(
+                        "code" => 105,
+                        "operationType" => "connect_INSIDE",
+                        "error_message" => "输入错误，某一表集不存在，请检查输入正确或表集存在"
+                    );
+                }
+            }
+        } else {
+            $table_output = array(
+                "code" => 104,
+                "operationType" => "connect_INSIDE",
+                "error_message" => "输入错误，结尾和开头不应该存在斜线"
+            );
+        }
+    } else {
+        $table_output = array(
+            "code" => 101,
+            "operationType" => "connect_INSIDE",
             "error_message" => "无法找到{$table}表，请核对后重试"
         );
     }
