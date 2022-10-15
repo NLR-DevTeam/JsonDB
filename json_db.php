@@ -3,7 +3,8 @@
     ArkPowered Studio
     方块盒子工作室
     ----------------------------------------------------------------
-    程序版本；Alpha-Codeing-0.5 Beta
+    程序版本；Release v1.0.0
+    年度序列：22w01a
     JSON_DB数据库函数集文件，JSON数据库程序
     Github仓库：https://github.com/CarlSkyCoding/JsonDB
     作者：SkyGod
@@ -11,29 +12,40 @@
 !-->
 <link rel="stylesheet" href="//cdn.arkpowered.cn/css/page/offical/jsonDB.css">
 <?php
-//Setting 设置（如果不懂或者作者没有让你改，请不要动）
 
-$version = 5;
-$versionRead = "Alpha-Codeing-0.5 Beta";
+
+//  ----------------------------------------------------------------
+//                          Setting 设置
+//  ----------------------------------------------------------------
+$GLOBALS["setting_path_to_Tablelist"] = true;
+// 决定了如果旧版本的path.json与新版本的Tablelist.json冲突，数据库重名的话双方的优先等级
+// true为Tablelist.json , false为path.json
+$GLOBALS["setting_autoCheckUpdate"] = false;
+// 是否自动检查更新并且告知您，如果为true，在有更新时，将会立即把您传送到提示的窗口，建议不启用，可以检查更新用
+
+//常量设置，请不要更改此内容
+$GLOBALS["Version"] = 6;
+$GLOBALS["versionRead"] = "Release v1.0.0";
+$GLOBALS["AnnualSerial"] = "22w01a";
 
 $rootPath = $_SERVER["DOCUMENT_ROOT"];
 $nowPath = getcwd() . "/";
 $GLOBALS["rootPath"] = $_SERVER["DOCUMENT_ROOT"];
 $GLOBALS["nowPath"] = getcwd() . "/";
 
-//常量设置，请不要更改此内容
-$updateCheckurl = "//api.arkpowered.cn/update/check/jsonDB.json";
-$listTablePath = getcwd() . "/jsonDB_store/path.json";
-$logTablePath = getcwd() . "/jsonDB_store/log.out";
+$GLOBALS["checkingUpdateURL"] = "https://api.arkpowered.cn/update/check/jsonDB.json";
+$GLOBALS["listTablePath"] = getcwd() . "/jsonDB_store/Tablelist.json";
+$GLOBALS["logTablePath"] = getcwd() . "/jsonDB_store/log.out";
+$GLOBALS["SettingPath"] = getcwd() . "/jsonDB_store/Setting.json";
 
 //运行前检查与设置
 if (chmod($nowPath, 0755)) {
     if (!is_dir("{$nowPath}jsonDB_store")) {
         mkdir("{$nowPath}jsonDB_store");
     }
-    if (!file_exists("{$nowPath}jsonDB_store/path.json")) {
-        if (fopen($listTablePath, "w+") == false) {
-            echo "<br><a class='notice-head'>[jsonDB基础系统]</a> 创建数据库表文件(SettingJSON,fopen [w+])权限不足，请您提高根目录的权限";
+    if (!file_exists($GLOBALS["listTablePath"])) {
+        if (fopen($GLOBALS["listTablePath"], "w+") == false) {
+            echo "<br><a class='notice-head'>[jsonDB基础系统]</a> 创建数据库表文件(TablelistJSON,fopen [w+])权限不足，请您提高根目录的权限";
             exit();
         }
     }
@@ -43,16 +55,60 @@ if (chmod($nowPath, 0755)) {
             exit();
         }
     }
+    if (!file_exists("{$nowPath}jsonDB_store/setting.json")) {
+        if (fopen($GLOBALS["SettingPath"], "w+") == false) {
+            echo "<br><a class='notice-head'>[jsonDB基础系统]</a> 创建设置文件(SettingJSON,fopen [w+])权限不足，请您提高根目录的权限";
+            exit();
+        }
+    }
 } else {
     echo "<br><a class='notice-head'>[jsonDB基础系统]</a> 创建文件夹权限不足，请您提高根目录的权限";
     exit();
 }
-//主要函数部分
 
+//检查path.json
+if (file_exists("{$nowPath}jsonDB_store/path.json")) {
+    $data = file_get_contents($GLOBALS["listTablePath"]);
+    $data = json_decode($data, true);
+    $oldData = file_get_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json");
+    $oldData = json_decode($oldData, true);
+    foreach ($oldData as $key => $value) {
+        if (isset($data[$key])) {
+            if ($GLOBALS["setting_path_to_Tablelist"] == true) {
+            } else {
+                $data[$key] = $value;
+            }
+        } else {
+            $transingArray = array(
+                $key => $value,
+            );
+            $data = array_merge($data, $transingArray);
+        }
+    }
+    file_put_contents($GLOBALS["listTablePath"], json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    unlink("{$nowPath}jsonDB_store/path.json");
+}
+
+//检查更新部分
+if ($GLOBALS["setting_autoCheckUpdate"] == false) {
+} else {
+    jsonDB_checkupdate();
+}
+
+function jsonDB_checkupdate()
+{
+    $response = file_get_contents($GLOBALS["checkingUpdateURL"]);
+    $response = json_decode($response, true);
+    if ($response["latestVersion"] > $GLOBALS["Version"]) {
+        header("location: //arkpowered.cn/notice.php?reason=您的 JsonDB 不是最新版本。您可以前往 https://github.com/CarlSkyCoding/JsonDB 进行更新&targettitle=Github仓库&target=//github.com/CarlSkyCoding/JsonDB");
+    }
+}
+
+//主要 JsonDB 程序部分
 function jsonDB_create($table, $content, $description)
 {
     if (is_array($content) && isset($description)) {
-        $data = file_get_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json");
+        $data = file_get_contents($GLOBALS["listTablePath"]);
         $data = json_decode($data, true);
         if (!isset($data[$table])) {
             $new_table = array(
@@ -63,7 +119,7 @@ function jsonDB_create($table, $content, $description)
                 )
             );
             $data = array_merge($data, $new_table);
-            file_put_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json", json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            file_put_contents($GLOBALS["listTablePath"], json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
             $table_output = array(
                 "code" => 100,
                 "operationType" => "create",
@@ -88,11 +144,11 @@ function jsonDB_create($table, $content, $description)
 
 function jsonDB_delete($table)
 {
-    $data = file_get_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json");
+    $data = file_get_contents($GLOBALS["listTablePath"]);
     $data = json_decode($data, true);
     if (isset($data[$table])) {
         unset($data[$table]);
-        file_put_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json", json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        file_put_contents($GLOBALS["listTablePath"], json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
         $table_output = array(
             "code" => 100,
             "operationType" => "delete",
@@ -110,7 +166,7 @@ function jsonDB_delete($table)
 
 function jsonDB_connect($table)
 {
-    $data = file_get_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json");
+    $data = file_get_contents($GLOBALS["listTablePath"]);
     $data = json_decode($data, true);
     if (isset($data[$table])) {
         $table_content = $data[$table]["table_content"];
@@ -131,7 +187,7 @@ function jsonDB_connect($table)
 
 function jsonDB_connect_INSIDE($table, $path)
 {
-    $data = file_get_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json");
+    $data = file_get_contents($GLOBALS["listTablePath"]);
     $data = json_decode($data, true);
     if (isset($data[$table])) {
         if (substr($path, 0, 1) !== "/" && substr($path, -1, 1) !== "/") {
@@ -178,12 +234,12 @@ function jsonDB_connect_INSIDE($table, $path)
 
 function jsonDB_cover($table, $content)
 {
-    $data = file_get_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json");
+    $data = file_get_contents($GLOBALS["listTablePath"]);
     $data = json_decode($data, true);
     if (isset($data[$table])) {
         if (is_array($content)) {
             $data[$table]["table_content"] = $content;
-            file_put_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json", json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            file_put_contents($GLOBALS["listTablePath"], json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
             $table_output = array(
                 "code" => 100,
                 "operationType" => "cover",
