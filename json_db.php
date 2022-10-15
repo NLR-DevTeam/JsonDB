@@ -3,7 +3,7 @@
     ArkPowered Studio
     方块盒子工作室
     ----------------------------------------------------------------
-    程序版本；Alpha-Codeing-0.4 Beta
+    程序版本；Alpha-Codeing-0.5 Beta
     JSON_DB数据库函数集文件，JSON数据库程序
     Github仓库：https://github.com/CarlSkyCoding/JsonDB
     作者：SkyGod
@@ -13,8 +13,8 @@
 <?php
 //Setting 设置（如果不懂或者作者没有让你改，请不要动）
 
-$version = 4;
-$versionRead = "Alpha-Codeing-0.4 Beta";
+$version = 5;
+$versionRead = "Alpha-Codeing-0.5 Beta";
 
 $rootPath = $_SERVER["DOCUMENT_ROOT"];
 $nowPath = getcwd() . "/";
@@ -54,27 +54,36 @@ function jsonDB_create($table, $content, $description)
     if (is_array($content) && isset($description)) {
         $data = file_get_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json");
         $data = json_decode($data, true);
-        $new_table = array(
-            $table => array(
-                "table_content" => $content,
-                "table_describe" => $description,
-                "createTime" => time()
-            )
-        );
-        $new_table = array_merge($data, $new_table);
-        jsonDB_cover($data, $new_table);
-        $table_output = array(
-            "code" => 100,
-            "operationType" => "create",
-            "message" => "成功创建此数据库"
-        );
+        if (!isset($data[$table])) {
+            $new_table = array(
+                $table => array(
+                    "table_content" => $content,
+                    "table_describe" => $description,
+                    "createTime" => time()
+                )
+            );
+            $data = array_merge($data, $new_table);
+            file_put_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json", json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            $table_output = array(
+                "code" => 100,
+                "operationType" => "create",
+                "result" => "成功创建此数据库"
+            );
+        } else {
+            $table_output = array(
+                "code" => 106,
+                "operationType" => "create",
+                "error_message" => "表已存在"
+            );
+        }
     } else {
         $table_output = array(
             "code" => 103,
             "operationType" => "create",
-            "message" => "{$table}表的Content内容并非Array数组，请输入一个Array数组。或者是您没有填写Description，请在函数第三项填写此值"
+            "error_message" => "{$table}表的Content内容并非Array数组，请输入一个Array数组。或者是您没有填写Description，请在函数第三项填写此值"
         );
     }
+    return $table_output;
 }
 
 function jsonDB_delete($table)
@@ -83,17 +92,17 @@ function jsonDB_delete($table)
     $data = json_decode($data, true);
     if (isset($data[$table])) {
         unset($data[$table]);
-        jsonDB_cover($data, $data);
+        file_put_contents("{$GLOBALS['nowPath']}jsonDB_store/path.json", json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
         $table_output = array(
             "code" => 100,
             "operationType" => "delete",
-            "message" => "成功删除此数据库"
+            "result" => "成功删除此数据库"
         );
     } else {
         $table_output = array(
             "code" => 101,
             "operationType" => "cover",
-            "message" => "无法找到{$table}表，请核对后重试"
+            "error_message" => "无法找到{$table}表，请核对后重试"
         );
     }
     return json_encode($table_output);
@@ -126,7 +135,7 @@ function jsonDB_connect_INSIDE($table, $path)
     $data = json_decode($data, true);
     if (isset($data[$table])) {
         if (substr($path, 0, 1) !== "/" && substr($path, -1, 1) !== "/") {
-            $table_content = $data[$table];
+            $table_content = $data[$table]["table_content"];
             $explode_array = explode("/", $path);
             $count = count($explode_array);
             $discount = 0;
@@ -178,7 +187,7 @@ function jsonDB_cover($table, $content)
             $table_output = array(
                 "code" => 100,
                 "operationType" => "cover",
-                "message" => "成功覆盖此数据库"
+                "result" => "成功覆盖此数据库"
             );
         } else {
             $table_output = array(
@@ -204,7 +213,7 @@ function jsonDB_Tools_merge($array_A, $array_B)
         $tools_output = array(
             "code" => 200,
             "operationType" => "Tools_merge",
-            "message" => $outArray
+            "result" => $outArray
         );
     } else {
         $tools_output = array(
