@@ -3,10 +3,11 @@
     ArkPowered Studio
     方块盒子工作室
     ----------------------------------------------------------------
-    程序版本；Release v1.0.0
-    年度序列：22w01a
+    程序版本；Release v1.0.1
+    年度序列：22w02a
     JSON_DB数据库函数集文件，JSON数据库程序
     Github仓库：https://github.com/CarlSkyCoding/JsonDB
+    Gitee仓库：https://gitee.com/CarlSkyCoding/json-db
     作者：SkyGod
     ----------------------------------------------------------------
 !-->
@@ -17,16 +18,19 @@
 //  ----------------------------------------------------------------
 //                          Setting 设置
 //  ----------------------------------------------------------------
+$GLOBALS["setting_adminControl_password"] = "admin123";
+
 $GLOBALS["setting_path_to_Tablelist"] = true;
 // 决定了如果旧版本的path.json与新版本的Tablelist.json冲突，数据库重名的话双方的优先等级
 // true为Tablelist.json , false为path.json
+
 $GLOBALS["setting_autoCheckUpdate"] = false;
 // 是否自动检查更新并且告知您，如果为true，在有更新时，将会立即把您传送到提示的窗口，建议不启用，可以检查更新用
 
 //常量设置，请不要更改此内容
-$GLOBALS["Version"] = 6;
-$GLOBALS["versionRead"] = "Release v1.0.0";
-$GLOBALS["AnnualSerial"] = "22w01a";
+$GLOBALS["Version"] = 7;
+$GLOBALS["versionRead"] = "Release v1.0.1";
+$GLOBALS["AnnualSerial"] = "22w02a";
 
 $rootPath = $_SERVER["DOCUMENT_ROOT"];
 $nowPath = getcwd() . "/";
@@ -66,7 +70,11 @@ if (chmod($nowPath, 0755)) {
     exit();
 }
 
-//检查path.json
+if ($GLOBALS["setting_adminControl_password"] == "admin123") {
+    header("location: //arkpowered.cn/notice.php?reason=请先在 密码设置（全局的setting_adminControl_password）项的设置中更改密码，不可使用默认密码，否则会造成夺权攻击");
+}
+
+//path.json => Tablelist.json
 if (file_exists("{$nowPath}jsonDB_store/path.json")) {
     $data = file_get_contents($GLOBALS["listTablePath"]);
     $data = json_decode($data, true);
@@ -104,7 +112,8 @@ function jsonDB_checkupdate()
     }
 }
 
-//主要 JsonDB 程序部分
+// 主要 JsonDB 程序部分
+// 基本类
 function jsonDB_create($table, $content, $description)
 {
     if (is_array($content) && isset($description)) {
@@ -185,6 +194,75 @@ function jsonDB_connect($table)
     return json_encode($table_output);
 }
 
+function jsonDB_cover($table, $content)
+{
+    $data = file_get_contents($GLOBALS["listTablePath"]);
+    $data = json_decode($data, true);
+    if (isset($data[$table])) {
+        if (is_array($content)) {
+            $data[$table]["table_content"] = $content;
+            file_put_contents($GLOBALS["listTablePath"], json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            $table_output = array(
+                "code" => 100,
+                "operationType" => "cover",
+                "result" => "成功覆盖此数据库"
+            );
+        } else {
+            $table_output = array(
+                "code" => 102,
+                "operationType" => "cover",
+                "error_message" => "{$table}表无法被修改，因为新的Json内容并非Json格式或变量类型"
+            );
+        }
+    } else {
+        $table_output = array(
+            "code" => 101,
+            "operationType" => "cover",
+            "error_message" => "无法找到{$table}表，请核对后重试"
+        );
+    }
+    return json_encode($table_output);
+}
+
+function jsonDB_clone($table, $clonetablename)
+{
+    $data = file_get_contents($GLOBALS["listTablePath"]);
+    $data = json_decode($data, true);
+    if (isset($data[$table])) {
+        $table_content = $data[$table]["table_content"];
+        if (!isset($data[$clonetablename])) {
+            $new_table = array(
+                $clonetablename => array(
+                    "table_content" => $table_content,
+                    "table_describe" => $data[$table]["table_describe"],
+                    "createTime" => time()
+                )
+            );
+            $data = array_merge($data, $new_table);
+            file_put_contents($GLOBALS["listTablePath"], json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            $table_output = array(
+                "code" => 100,
+                "operationType" => "clone",
+                "result" => "成功克隆{$table}数据库到{$clonetablename}"
+            );
+        } else {
+            $table_output = array(
+                "code" => 106,
+                "operationType" => "clone",
+                "error_message" => "表已存在"
+            );
+        }
+    } else {
+        $table_output = array(
+            "code" => 101,
+            "operationType" => "clone",
+            "error_message" => "无法找到{$table}表，请核对后重试"
+        );
+    }
+    return json_encode($table_output);
+}
+
+// 进阶类
 function jsonDB_connect_INSIDE($table, $path)
 {
     $data = file_get_contents($GLOBALS["listTablePath"]);
@@ -232,36 +310,7 @@ function jsonDB_connect_INSIDE($table, $path)
     return json_encode($table_output);
 }
 
-function jsonDB_cover($table, $content)
-{
-    $data = file_get_contents($GLOBALS["listTablePath"]);
-    $data = json_decode($data, true);
-    if (isset($data[$table])) {
-        if (is_array($content)) {
-            $data[$table]["table_content"] = $content;
-            file_put_contents($GLOBALS["listTablePath"], json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-            $table_output = array(
-                "code" => 100,
-                "operationType" => "cover",
-                "result" => "成功覆盖此数据库"
-            );
-        } else {
-            $table_output = array(
-                "code" => 102,
-                "operationType" => "cover",
-                "error_message" => "{$table}表无法被修改，因为新的Json内容并非Json格式或变量类型"
-            );
-        }
-    } else {
-        $table_output = array(
-            "code" => 101,
-            "operationType" => "cover",
-            "error_message" => "无法找到{$table}表，请核对后重试"
-        );
-    }
-    return json_encode($table_output);
-}
-
+// 便捷工具类
 function jsonDB_Tools_merge($array_A, $array_B)
 {
     if (is_array($array_A) && is_array($array_B)) {
@@ -278,4 +327,5 @@ function jsonDB_Tools_merge($array_A, $array_B)
             "error_message" => "变量不是数组"
         );
     }
+    return json_encode($tools_output);
 }
