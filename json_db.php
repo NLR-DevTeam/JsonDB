@@ -3,8 +3,8 @@
     ArkPowered Studio
     方块盒子工作室
     ----------------------------------------------------------------
-    程序版本；Release v1.0.1
-    年度序列：22w02a
+    程序版本；Release v1.0.2
+    年度序列：22w03a
     JSON_DB数据库函数集文件，JSON数据库程序
     Github仓库：https://github.com/CarlSkyCoding/JsonDB
     Gitee仓库：https://gitee.com/CarlSkyCoding/json-db
@@ -19,18 +19,19 @@
 //                          Setting 设置
 //  ----------------------------------------------------------------
 $GLOBALS["setting_adminControl_password"] = "admin123";
+// 数据库程序密码，用于确认您的操作，保证您的JsonDB数据库不会被恶意操作销毁（不允许等于默认值）
 
 $GLOBALS["setting_path_to_Tablelist"] = true;
 // 决定了如果旧版本的path.json与新版本的Tablelist.json冲突，数据库重名的话双方的优先等级
-// true为Tablelist.json , false为path.json
+// true为Tablelist.json , false为path.json（默认为true）
 
 $GLOBALS["setting_autoCheckUpdate"] = false;
-// 是否自动检查更新并且告知您，如果为true，在有更新时，将会立即把您传送到提示的窗口，建议不启用，可以检查更新用
+// 是否自动检查更新并且告知您，如果为true，在有更新时，将会立即把您传送到提示的窗口，建议不启用，可以检查更新用。（默认为false）
 
 //常量设置，请不要更改此内容
-$GLOBALS["Version"] = 7;
-$GLOBALS["versionRead"] = "Release v1.0.1";
-$GLOBALS["AnnualSerial"] = "22w02a";
+$GLOBALS["Version"] = 8;
+$GLOBALS["versionRead"] = "Release v1.0.2";
+$GLOBALS["AnnualSerial"] = "22w03a";
 
 $rootPath = $_SERVER["DOCUMENT_ROOT"];
 $nowPath = getcwd() . "/";
@@ -74,7 +75,7 @@ if ($GLOBALS["setting_adminControl_password"] == "admin123") {
     header("location: //arkpowered.cn/notice.php?reason=请先在 密码设置（全局的setting_adminControl_password）项的设置中更改密码，不可使用默认密码，否则会造成夺权攻击");
 }
 
-//path.json => Tablelist.json
+//path.json => Tablelist.json 数据库转变
 if (file_exists("{$nowPath}jsonDB_store/path.json")) {
     $data = file_get_contents($GLOBALS["listTablePath"]);
     $data = json_decode($data, true);
@@ -151,23 +152,32 @@ function jsonDB_create($table, $content, $description)
     return $table_output;
 }
 
-function jsonDB_delete($table)
+function jsonDB_delete($table,$password)
 {
-    $data = file_get_contents($GLOBALS["listTablePath"]);
-    $data = json_decode($data, true);
-    if (isset($data[$table])) {
-        unset($data[$table]);
-        file_put_contents($GLOBALS["listTablePath"], json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    if($password == $GLOBALS["setting_adminControl_password"]){
+        $data = file_get_contents($GLOBALS["listTablePath"]);
+        $data = json_decode($data, true);
+        if (isset($data[$table])) {
+            unset($data[$table]);
+            file_put_contents($GLOBALS["listTablePath"], json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            $table_output = array(
+                "code" => 100,
+                "operationType" => "delete",
+                "result" => "成功删除此数据库"
+            );
+        } else {
+            $table_output = array(
+                "code" => 101,
+                "operationType" => "delete",
+                "error_message" => "无法找到{$table}表，请核对后重试"
+            );
+        }
+        
+    }else{
         $table_output = array(
-            "code" => 100,
+            "code" => 6001,
             "operationType" => "delete",
-            "result" => "成功删除此数据库"
-        );
-    } else {
-        $table_output = array(
-            "code" => 101,
-            "operationType" => "cover",
-            "error_message" => "无法找到{$table}表，请核对后重试"
+            "error_message" => "无法删除{$table}表，您的密码有误"
         );
     }
     return json_encode($table_output);
