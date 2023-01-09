@@ -72,7 +72,7 @@ if (chmod($nowPath, 0755)) {
 }
 
 if ($GLOBALS["setting_adminControl_password"] == "admin123") {
-    header("location: //arkpowered.cn/notice.php?reason=请先在 密码设置（全局的setting_adminControl_password）项的设置中更改密码，不可使用默认密码，否则会造成夺权攻击");
+    header("location: //arkpowered.cn/notice?reason=请先在 密码设置（全局的setting_adminControl_password）项的设置中更改密码，不可使用默认密码，否则会造成夺权攻击");
 }
 
 //path.json => Tablelist.json 数据库转变
@@ -109,7 +109,7 @@ function jsonDB_checkupdate()
     $response = file_get_contents($GLOBALS["checkingUpdateURL"]);
     $response = json_decode($response, true);
     if ($response["latestVersion"] > $GLOBALS["Version"]) {
-        header("location: //arkpowered.cn/notice.php?reason=您的 JsonDB 不是最新版本。您可以前往 https://github.com/CarlSkyCoding/JsonDB 进行更新&targettitle=Github仓库&target=//github.com/CarlSkyCoding/JsonDB");
+        header("location: //arkpowered.cn/notice?reason=您的 JsonDB 不是最新版本。您可以前往 https://github.com/CarlSkyCoding/JsonDB 进行更新&targettitle=Github仓库&target=//github.com/CarlSkyCoding/JsonDB");
     }
 }
 
