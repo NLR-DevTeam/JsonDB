@@ -1,5 +1,6 @@
 # JsonDB
 <p>一个轻量，简洁，实用的Json数据库全新接口</p>
+<p style="color: red;">已停止维护，目前正在开发新程序 <a href="https://github.com/CarlSkyCoding/JsonStorage">JsonStorage</a></p>
 <p>使用前请记得把文件夹权限调成777权限，否则会导致无法读取信息 <a href="//arkpowered.cn">访问我们的官网</a></p>
 <p>另外，请使用放在一个合适的位置并且使用 require() 函数 调用JsonDB程序</p>
 
